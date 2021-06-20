@@ -11,10 +11,10 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import path from 'path';
-import { app, BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, Notification } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import MenuBuilder from './menu';
+import MenuBuilder from './main/menu';
 
 export default class AppUpdater {
   constructor() {
@@ -69,13 +69,21 @@ const createWindow = async () => {
 
   mainWindow = new BrowserWindow({
     show: false,
-    width: 1024,
+    width: 1280,
     height: 728,
+    minWidth: 1024,
+    minHeight: 728,
     icon: getAssetPath('icon.png'),
     webPreferences: {
       nodeIntegration: true,
+      // worldSafeExecuteJavaScript: true,
+      // contextIsolation: true,
+      // preload: path.join(__dirname, 'preload.js'),
     },
+    frame: false,
   });
+
+  mainWindow.setMenuBarVisibility(false);
 
   mainWindow.loadURL(`file://${__dirname}/index.html`);
 
@@ -85,6 +93,7 @@ const createWindow = async () => {
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
     }
+
     if (process.env.START_MINIMIZED) {
       mainWindow.minimize();
     } else {
@@ -114,6 +123,22 @@ const createWindow = async () => {
 /**
  * Add event listeners...
  */
+
+ ipcMain.on('close-app', () => {
+  mainWindow?.close()
+});
+
+ipcMain.on('maximize-restore-app', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.restore();
+  } else {
+    mainWindow?.maximize();
+  }
+});
+
+ipcMain.on('minimize-app', () => {
+  mainWindow?.minimize();
+});
 
 app.on('window-all-closed', () => {
   // Respect the OSX convention of having the application in memory even
